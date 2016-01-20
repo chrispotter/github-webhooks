@@ -7,7 +7,40 @@ var logger = require('log4js').getLogger();
 var fs = require('fs');
 var util = require('util');
 
+// read configuration from config.json, export to app.locals
+process.env['ENV_VAR_CONFIG_FILE'] = process.env['ENV_VAR_CONFIG_FILE'] ||
+  'config.json';
+_.assign(app.locals, require('var'));
+
 var client = github.client(app.locals.GITHUB_TOKEN);
+
+// change into hooks listing directory
+try {
+  fs.accessSync(app.locals.APP_WORKDIR, fs.W_OK | fs.X_OK);
+  process.chdir(app.locals.APP_WORKDIR);
+  logger.info('set CWD to %s', app.locals.APP_WORKDIR);
+} catch(e) {
+  logger.warn(e.message);
+  logger.error("could not write to APP_WORKDIR - %s", app.locals.APP_WORKDIR);
+  process.exit(1);
+}
+
+app.get('/hooks', function(req,res) {
+  res.send('Hooks');
+  client.get('/user', {}, function (err, status, body, headers) {
+    console.log(body); //json object
+  });
+});
+app.get('/*', function(req,res) {
+  fs.readdir('./hooks', processUserDirectories);
+});
+//start server
+server.listen(app.locals.PORT, function() {
+  logger.info('%s listening on %s:%s',
+    app.locals.TITLE,
+    server.address().address,
+    server.address().port);
+});
 
 function loopUserFolders(user_dir){
   var ghuser = client.user(user_dir);
@@ -42,25 +75,3 @@ function processRepoDirectories(err, stats){
 function processUserDirectories(err, stats){
   stats.forEach(loopUserFolders);
 }
-
-// read configuration from config.json, export to app.locals
-process.env['ENV_VAR_CONFIG_FILE'] = process.env['ENV_VAR_CONFIG_FILE'] ||
-  'config.json';
-_.assign(app.locals, require('var'));
-
-app.get('/hooks', function(req,res) {
-  res.send('Hooks');
-  client.get('/user', {}, function (err, status, body, headers) {
-    console.log(body); //json object
-  });
-});
-app.get('/*', function(req,res) {
-  fs.readdir('./hooks', processUserDirectories);
-});
-//start server
-server.listen(app.locals.PORT, function() {
-  logger.info('%s listening on %s:%s',
-    app.locals.TITLE,
-    server.address().address,
-    server.address().port);
-});
