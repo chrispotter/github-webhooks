@@ -2,7 +2,7 @@
   "PORT": 7777,
   "TITLE": "octohook-priorities",
   "LOG_LEVEL": "INFO",
-  "GITHUB_TOKEN": "c85ef05b6919c7d819e48522f09fc589587055b2",
+  "GITHUB_TOKEN": "personal access token with admin:repo_hook + access",
   "GITHUB_HOOK_SECRET": "secret used to validate webhooks",
   "TITLE" : "This is the Test Repo",
   "GITHUB_ORGANIZATION" : "BlueAcornInc"
