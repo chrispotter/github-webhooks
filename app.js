@@ -6,6 +6,7 @@ var server = require('http').Server(app);
 var logger = require('log4js').getLogger();
 var fs = require('fs');
 var util = require('util');
+var helpers = require('./lib/helpers.js');
 
 // read configuration from config.json, export to app.locals
 process.env['ENV_VAR_CONFIG_FILE'] = process.env['ENV_VAR_CONFIG_FILE'] ||
@@ -14,16 +15,16 @@ _.assign(app.locals, require('var'));
 
 var client = github.client(app.locals.GITHUB_TOKEN);
 
-// change into hooks listing directory
-try {
-  fs.accessSync(app.locals.APP_WORKDIR, fs.W_OK | fs.X_OK);
-  process.chdir(app.locals.APP_WORKDIR);
-  logger.info('set CWD to %s', app.locals.APP_WORKDIR);
-} catch(e) {
-  logger.warn(e.message);
-  logger.error("could not write to APP_WORKDIR - %s", app.locals.APP_WORKDIR);
-  process.exit(1);
-}
+// // change into hooks listing directory
+// try {
+//   fs.accessSync(app.locals.APP_WORKDIR, fs.W_OK | fs.X_OK);
+//   process.chdir(app.locals.APP_WORKDIR);
+//   logger.info('set CWD to %s', app.locals.APP_WORKDIR);
+// } catch(e) {
+//   logger.warn(e.message);
+//   logger.error("could not write to APP_WORKDIR - %s", app.locals.APP_WORKDIR);
+//   process.exit(1);
+// }
 
 app.get('/hooks', function(req,res) {
   res.send('Hooks');
@@ -32,7 +33,9 @@ app.get('/hooks', function(req,res) {
   });
 });
 app.get('/*', function(req,res) {
-  fs.readdir('./hooks', processUserDirectories);
+  var directories = helpers.getDirectories(app.locals.APP_WORKDIR);
+  console.log(directories);
+  // fs.readdir('./hooks', processUserDirectories);
 });
 //start server
 server.listen(app.locals.PORT, function() {
@@ -41,6 +44,8 @@ server.listen(app.locals.PORT, function() {
     server.address().address,
     server.address().port);
 });
+
+
 
 function loopUserFolders(user_dir){
   var ghuser = client.user(user_dir);
@@ -69,9 +74,10 @@ function processrepos(err, data, headers){
     // console.log('data: ' + util.inspect(data, false, null));
   }
 }
-function processRepoDirectories(err, stats){
-  stats.forEach(loopRepoFolders.bind({'client':this['client']}));
+function processRepoDirectories(err, files){
+  files.forEach(loopRepoFolders.bind({'client':this['client']}));
 }
-function processUserDirectories(err, stats){
-  stats.forEach(loopUserFolders);
+function processUserDirectories(err, files){
+  //ensure that these are folders and not just files
+  files.forEach(loopUserFolders);
 }
