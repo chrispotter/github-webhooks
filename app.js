@@ -16,15 +16,15 @@ _.assign(app.locals, require('var'));
 var client = github.client(app.locals.GITHUB_TOKEN);
 
 // // change into hooks listing directory
-// try {
-//   fs.accessSync(app.locals.APP_WORKDIR, fs.W_OK | fs.X_OK);
-//   process.chdir(app.locals.APP_WORKDIR);
-//   logger.info('set CWD to %s', app.locals.APP_WORKDIR);
-// } catch(e) {
-//   logger.warn(e.message);
-//   logger.error("could not write to APP_WORKDIR - %s", app.locals.APP_WORKDIR);
-//   process.exit(1);
-// }
+try {
+  fs.accessSync(app.locals.APP_WORKDIR, fs.W_OK | fs.X_OK);
+  process.chdir(app.locals.APP_WORKDIR);
+  logger.info('set CWD to %s', app.locals.APP_WORKDIR);
+} catch(e) {
+  logger.warn(e.message);
+  logger.error("could not write to APP_WORKDIR - %s", app.locals.APP_WORKDIR);
+  process.exit(1);
+}
 
 app.get('/hooks', function(req,res) {
   res.send('Hooks');
@@ -33,9 +33,25 @@ app.get('/hooks', function(req,res) {
   });
 });
 app.get('/*', function(req,res) {
-  var directories = helpers.getDirectories(app.locals.APP_WORKDIR);
-  console.log(directories);
-  // fs.readdir('./hooks', processUserDirectories);
+  var user_directories = helpers.getDirectories('.');
+  user_directories.forEach(function(user_name){
+    helpers.getDirectories(user_name).forEach(function(repo_name){
+        var ghrepo = client.repo(user_name + '/' + repo_name);
+        ghrepo.hooks(function(err, data, headers){
+          if(err){
+            logger.warn('%s Hooks Error: %s', repo_name, err['message']);
+            return;
+          }
+          data.forEach(function(hook){
+            console.log(hook.config.url)
+          })
+
+          // console.log(util.inspect(data));
+        });
+        console.log(util.format('%s/%s', user_name, repo_name));
+      }
+    );
+  })
 });
 //start server
 server.listen(app.locals.PORT, function() {
