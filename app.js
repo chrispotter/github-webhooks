@@ -41,89 +41,21 @@ user_directories.forEach(function(user_name){
       ghorg.info(function(err, data, headers){
         if(err){
           logger.error('%s organization error: %s', user_name, err['message']);
+          return
         }
-        //see if organization has any hooks
-        ghorg.hooks(function(err, data, headers){
-          if(err){
-            logger.error('%s Hooks Error: %s', user_name, err['message']);
-            return;
-          }
-          var hookfound = false;
-          data.forEach(function(hook){
-            if(hook.config.url == app.locals.GITHUB_HOOK_ROUTE){
-              //found repohook
-              hookfound = true;
-            }
-          });
-          if(hookfound){
-            logger.info('Hook found for org:%s', user_name);
-            return;
-          }
-          logger.info('Hook not found for org:%s', user_name);
-          logger.info('Creating Hook for org:%s', user_name);
-          ghorg.hook({
-            "name": "web",
-            "active": true,
-            "events": ["*"],
-            "config": {
-              "url": app.locals.GITHUB_HOOK_ROUTE,
-              "content_type": "json"
-            }
-          },function(err, data, headers){
-            if(err){
-              logger.warn('%s Hooks Error: %s', user_name, err['message']);
-              return;
-            }
-            logger.info('Created Hook for org:%s', user_name);
-          });
-        });
+        //audit organization hooks
+        helpers.auditHooks(ghorg, 'Organization', user_name, app.locals);
       });
       return
     }
     helpers.getDirectories(user_name).forEach(function(repo_name){
         var ghrepo = client.repo(user_name + '/' + repo_name);
-        ghrepo.hooks(function(err, data, headers){
-          if(err){
-            logger.warn('%s/%s Hooks Error: %s', user_name, repo_name, err['message']);
-            return;
-          }
-          var hookfound = false;
-          data.forEach(function(hook){
-            if(hook.config.url == app.locals.GITHUB_HOOK_ROUTE){
-              //found repohook
-              hookfound = true;
-            }
-          });
-          if(hookfound){
-            logger.warn('Hook found for repo:%s/%s', user_name, repo_name);
-            return;
-          }
-          logger.info('Hook not found for repo:%s/%s', user_name, repo_name);
-          logger.info('Creating Hook for repo:%s/%s', user_name, repo_name);
-          ghrepo.hook({
-            "name": "web",
-            "active": true,
-            "events": ["*"],
-            "config": {
-              "url": app.locals.GITHUB_HOOK_ROUTE,
-              "secret": app.locals.GITHUB_HOOK_SECRET,
-              "content_type": "json"
-            }
-          }, function(err, data, headers){
-            if(err){
-              logger.warn('%s/%s Hooks Error: %s', user_name, repo_name, err['message']);
-              return;
-            }
-            logger.info('Created Hook for repo:%s/%s', user_name, repo_name);
-          });
-
-        });
+        //audit repository hooks
+        helpers.auditHooks(ghrepo, "Repositiory", util.format("%s/%s",user_name, repo_name), app.locals);
       }
     );
   });
-  if(!organization){
-    return;
-  }
+
 });
 
 app.get('/hooks', function(req,res) {

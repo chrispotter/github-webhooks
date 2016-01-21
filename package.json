@@ -23,7 +23,7 @@
     "http": "*",
     "lodash": "*",
     "log4js": "*",
-    "octonode": "*",
+    "octonode": "chrispotter/octonode#master",
     "var": "*"
   }
 }
