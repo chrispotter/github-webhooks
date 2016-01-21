@@ -3,7 +3,8 @@
   "TITLE": "App Title",
   "LOG_LEVEL": "INFO",
   "GITHUB_TOKEN": "personal access token with admin:repo_hook + access",
-  "GITHUB_HOOK_ROUTE": "Github hook route",
+  "BASEURL": "http://baseurl.com",
+  "GITHUB_HOOK_ROUTE": "/github-hook",
   "GITHUB_HOOK_SECRET": "secret used to validate webhooks",
   "APP_WORKDIR" : "./hooks"
 }

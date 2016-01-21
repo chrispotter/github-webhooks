@@ -58,7 +58,7 @@ user_directories.forEach(function(user_name){
 
 });
 
-app.get('/hooks', function(req,res) {
+app.get(app.locals.GITHUB_HOOK_ROUTE, function(req,res) {
   res.send('Hooks');
   client.get('/user', {}, function (err, status, body, headers) {
     console.log(body); //json object
