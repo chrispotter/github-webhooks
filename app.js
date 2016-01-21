@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var express = require('express');
-var github = require('octonode');
+var github = require('../octonode/lib/octonode.js');
 var app = express();
 var server = require('http').Server(app);
 var logger = require('log4js').getLogger();
@@ -32,25 +32,59 @@ app.get('/hooks', function(req,res) {
     console.log(body); //json object
   });
 });
+
+
 app.get('/*', function(req,res) {
   var user_directories = helpers.getDirectories('.');
   user_directories.forEach(function(user_name){
-    helpers.getDirectories(user_name).forEach(function(repo_name){
-        var ghrepo = client.repo(user_name + '/' + repo_name);
-        ghrepo.hooks(function(err, data, headers){
-          if(err){
-            logger.warn('%s Hooks Error: %s', repo_name, err['message']);
-            return;
-          }
-          data.forEach(function(hook){
-            console.log(hook.config.url)
-          })
-
-          // console.log(util.inspect(data));
-        });
-        console.log(util.format('%s/%s', user_name, repo_name));
+    var ghuser = client.user(user_name);
+    var organization = false;
+    ghuser.info(function(err, data, headers){
+      if(err){
+        logger.error('%s user error: %s', user_name, err['message']);
+        return
       }
-    );
+      if(data.type == "Organization"){
+        logger.warn('%s is an organization', user_name);
+        processOrganization(user_name);
+        return
+      }
+      helpers.getDirectories(user_name).forEach(function(repo_name){
+          var ghrepo = client.repo(user_name + '/' + repo_name);
+          ghrepo.hooks(function(err, data, headers){
+            if(err){
+              logger.warn('%s/%s Hooks Error: %s', user_name, repo_name, err['message']);
+              return;
+            }
+            var hookfound = false;
+            data.forEach(function(hook){
+              if(hook.config.url == app.locals.GITHUB_HOOK_ROUTE){
+                //found repohook
+                var hookfound = true;
+              }
+            });
+            if(hookfound){
+              logger.warn('Hook found for repo:%s/%s', user_name, repo_name);
+              return;
+            }
+            logger.info('Hook not found for repo:%s/%s', user_name, repo_name);
+            logger.info('Creating Hook for repo:%s/%s', user_name, repo_name);
+            //ghrepo.hook({
+            //  "name": "web",
+            //  "active": true,
+            //  "events": ["*"],
+            //  "config": {
+            //    "url": app.locals.GITHUB_HOOK_ROUTE
+            //  }
+            //})
+
+          });
+        }
+      );
+    });
+    if(!organization){
+      return;
+    }
   })
 });
 //start server
@@ -61,7 +95,34 @@ server.listen(app.locals.PORT, function() {
     server.address().port);
 });
 
-
+function processOrganization(user_name){
+  var ghorg = client.org(user_name);
+  ghorg.info(function(err, data, headers){
+    if(err){
+      logger.error('%s organization error: %s', user_name, err['message']);
+    }
+    //see if organization has any hooks
+    ghorg.hooks(function(err, data, headers){
+      if(err){
+        logger.error('%s Hooks Error: %s', user_name, err['message']);
+        return;
+      }
+      var hookfound = false;
+      data.forEach(function(hook){
+        if(hook.config.url == app.locals.GITHUB_HOOK_ROUTE){
+          //found repohook
+          var hookfound = true;
+        }
+      });
+      if(hookfound){
+        logger.warn('Hook found for org:%s/%s', user_name);
+        return;
+      }
+      logger.info('Hook not found for org:%s/%s', user_name);
+      logger.info('Creating Hook for org:%s/%s', user_name);
+    });
+  })
+}
 
 function loopUserFolders(user_dir){
   var ghuser = client.user(user_dir);
