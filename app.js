@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var express = require('express');
-var github = require('../octonode/lib/octonode.js');
+var github = require('octonode');
 var app = express();
 var server = require('http').Server(app);
 var logger = require('log4js').getLogger();
