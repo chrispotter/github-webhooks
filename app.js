@@ -60,7 +60,7 @@ app.get('/*', function(req,res) {
             data.forEach(function(hook){
               if(hook.config.url == app.locals.GITHUB_HOOK_ROUTE){
                 //found repohook
-                var hookfound = true;
+                hookfound = true;
               }
             });
             if(hookfound){
@@ -69,14 +69,21 @@ app.get('/*', function(req,res) {
             }
             logger.info('Hook not found for repo:%s/%s', user_name, repo_name);
             logger.info('Creating Hook for repo:%s/%s', user_name, repo_name);
-            //ghrepo.hook({
-            //  "name": "web",
-            //  "active": true,
-            //  "events": ["*"],
-            //  "config": {
-            //    "url": app.locals.GITHUB_HOOK_ROUTE
-            //  }
-            //})
+            ghrepo.hook({
+              "name": "web",
+              "active": true,
+              "events": ["*"],
+              "config": {
+                "url": app.locals.GITHUB_HOOK_ROUTE,
+                "content_type": "json"
+              }
+            }, function(err, data, headers){
+              if(err){
+                logger.warn('%s/%s Hooks Error: %s', user_name, repo_name, err['message']);
+                return;
+              }
+              logger.info('Created Hook for repo:%s/%s', user_name, repo_name);
+            });
 
           });
         }
@@ -111,50 +118,30 @@ function processOrganization(user_name){
       data.forEach(function(hook){
         if(hook.config.url == app.locals.GITHUB_HOOK_ROUTE){
           //found repohook
-          var hookfound = true;
+         hookfound = true;
         }
       });
       if(hookfound){
-        logger.warn('Hook found for org:%s/%s', user_name);
+        logger.info('Hook found for org:%s', user_name);
         return;
       }
-      logger.info('Hook not found for org:%s/%s', user_name);
-      logger.info('Creating Hook for org:%s/%s', user_name);
+      logger.info('Hook not found for org:%s', user_name);
+      logger.info('Creating Hook for org:%s', user_name);
+      ghorg.hook({
+        "name": "web",
+        "active": true,
+        "events": ["*"],
+        "config": {
+          "url": app.locals.GITHUB_HOOK_ROUTE,
+          "content_type": "json"
+        }
+      },function(err, data, headers){
+        if(err){
+          logger.warn('%s Hooks Error: %s', user_name, err['message']);
+          return;
+        }
+        logger.info('Created Hook for org:%s', user_name);
+      });
     });
   })
-}
-
-function loopUserFolders(user_dir){
-  var ghuser = client.user(user_dir);
-  ghuser.info(processuser.bind({'client': ghuser}));
-}
-
-function loopRepoFolders(repo_dir){
-  var ghrepo = client.repo(this['client']['login'] + '/' + repo_dir);
-  ghrepo.info(processrepos.bind({'client': this['client'], 'repo': ghrepo}));
-}
-
-function processuser(err, data, headers){
-  if(!err){
-    fs.readdir('./hooks/'+this['client']['login'], processRepoDirectories.bind({'client':this['client']}));
-  }
-}
-function processrepos(err, data, headers){
-  console.log(this['client']['login']);
-  console.log(this['repo']['name']);
-  if(!err){
-    console.log('data: ' + util.inspect(data, false, null));
-  }
-  else{
-    // console.log(this);
-    console.log(err);
-    // console.log('data: ' + util.inspect(data, false, null));
-  }
-}
-function processRepoDirectories(err, files){
-  files.forEach(loopRepoFolders.bind({'client':this['client']}));
-}
-function processUserDirectories(err, files){
-  //ensure that these are folders and not just files
-  files.forEach(loopUserFolders);
 }
