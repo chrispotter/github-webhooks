@@ -19,7 +19,7 @@
   "dependencies": {
     "express": "*",
     "fs": "*",
-    "github-webhook-middleware": "*",
+    "github-webhook-middleware": "0.0.2",
     "http": "*",
     "lodash": "*",
     "log4js": "*",
