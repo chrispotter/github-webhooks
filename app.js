@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var express = require('express');
-var github = require('octonode');
+var github = require('../octonode/lib/octonode.js');
 var app = express();
 var server = require('http').Server(app);
 var logger = require('log4js').getLogger();
@@ -58,11 +58,18 @@ user_directories.forEach(function(user_name){
 
 });
 
-app.get(app.locals.GITHUB_HOOK_ROUTE, function(req,res) {
+// middleware
+/////////////
+
+var githubMiddleware = require('github-webhook-middleware')({
+  secret: app.locals.GITHUB_HOOK_SECRET
+});
+
+app.post(app.locals.GITHUB_HOOK_ROUTE, githubMiddleware, function(req, res) {
+  var payload = req.body;
+  helpers.processPayload(payload, app.locals, req.headers['x-github-event']);
+
   res.send('Hooks');
-  client.get('/user', {}, function (err, status, body, headers) {
-    console.log(body); //json object
-  });
 });
 
 //start server
